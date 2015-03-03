@@ -1,0 +1,44 @@
+$script = <<SCRIPT
+
+apt-get install software-properties-common
+apt-add-repository ppa:ansible/ansible
+apt-add-repository ppa:webupd8team/java
+apt-add-repository "deb https://get.docker.io/ubuntu docker main"
+apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9
+
+apt-get update
+
+apt-get install -y ansible
+apt-get install -y lxc-docker
+
+echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections
+echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections
+apt-get install -y oracle-java8-installer
+apt-get install -y oracle-java8-set-default
+
+curl -L https://github.com/docker/fig/releases/download/1.0.1/fig-`uname -s`-`uname -m` > /usr/local/bin/fig
+chmod +x /usr/local/bin/fig
+
+usermod -a -G docker vagrant
+
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/trusty64"
+  config.vm.box_url = "http://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box"
+
+  #config.vm.network "public_network"
+  config.vm.network "private_network", ip: "192.168.33.10"
+  #config.vm.synced_folder ".", "/vagrant", type: "nfs"
+
+  # VirtualBox
+  config.vm.provider :virtualbox do |vb|
+    vb.memory = 4096
+    vb.cpus = 2
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+  end
+
+  # Provision
+  config.vm.provision "shell", inline: $script
+end
